@@ -1,0 +1,51 @@
+.container {
+  display: flex;
+  justify-content: flex-start;
+  flex-direction: column;
+  padding: 1rem;
+  color: -apple-system-gray;
+}
+
+.discover {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
+}
+
+.headline {
+  margin-bottom: 1rem;
+}
+
+.description {
+  margin-bottom: 1rem;
+}
+.description p {
+  margin: 0.5rem 0;
+}
+
+.subheadline {
+  margin-bottom: 0.5rem;
+}
+
+.inlineIcon {
+  vertical-align: middle;
+  margin-bottom: 2px; /* justér evt. op eller ned */
+}
+
+/* @keyframes floatToTarget {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(70px, -30px) rotate(-28deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+.arrow {
+  color: var(--foreground);
+  animation: floatToTarget 2.5s ease-in-out infinite;
+} */

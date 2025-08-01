@@ -1,0 +1,52 @@
+.safariOnPhoneContainer {
+  background: rgba(117, 117, 117, 0.05);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  backdrop-filter: blur(10px);
+  margin-bottom: 17px;
+  max-width: 400px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.instructionsTitle {
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.stepNumber {
+	font-size: 1.2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-right: 0.75rem;
+}
+
+.stepContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.addBtnTxt {
+	color: var(--primary-foreground);
+	font-size: larger;
+	font-weight: bold;
+	cursor: default;
+}
+
+.addBtnBox {
+	background-color: var(--primary-background);
+	padding: 0.3rem 1.7rem;
+	border-radius: 0.5rem;
+	cursor: default;
+}

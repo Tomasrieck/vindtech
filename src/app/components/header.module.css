@@ -1,0 +1,33 @@
+.container {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 1rem;
+  margin-bottom: .17rem;
+  width: 100%;
+  position: sticky;
+  background: linear-gradient(to bottom, var(--background) 0%, transparent 100%);
+}
+
+.container span {
+  font-size: 2rem;
+}
+
+.listItem {
+  color: var(--foreground);
+}
+
+.menuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.2rem;
+  color: -apple-system-gray;
+}
+
+.activeListItem {
+  background-color: rgba(0,0,0,0.17);
+  padding: 2rem;
+  border-radius: 10px;
+}
