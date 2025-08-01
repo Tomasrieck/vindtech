@@ -1,11 +1,13 @@
 .container {
-  padding: 3rem 1rem;
+  padding: 2rem 1rem;
 }
 
 .inputGroup {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(117, 117, 117, 0.5);
 }
 
 .input {
@@ -48,6 +50,7 @@
   align-items: center;
   padding: 1rem;
   border-radius: 10px;
+  margin: 0.7rem 0;
 }
 
 .itemEven {
@@ -78,7 +81,7 @@
 }
 
 .item input[type="checkbox"]:checked {
-  border: 5px solid #606060;
+  border: 4px solid #606060;
 }
 
 .text {

@@ -1,72 +1,89 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { cookies } from 'next/headers';
+import { list, put } from '@vercel/blob';
 
 type RecordEntry = { start: string; end: string };
-const DATA_DIR = path.join(process.cwd(), 'data/time-reg');
 
-async function ensureFile(file: string) {
-  try {
-    await fs.access(file);
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(file, '[]');
-  }
-}
-
-async function readEntries(file: string): Promise<RecordEntry[]> {
-  await ensureFile(file);
-  const content = await fs.readFile(file, 'utf8');
-  return JSON.parse(content) as RecordEntry[];
-}
-async function writeEntries(file: string, records: RecordEntry[]) {
-  await fs.writeFile(file, JSON.stringify(records, null, 2));
-}
-
+// Read anonId from cookie
 async function getAnonId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get('anonId')?.value || null;
+  const store = await cookies();
+  return store.get('anonId')?.value || null;
 }
 
-function userFile(userId: string) {
-  return path.join(DATA_DIR, `${userId}.json`);
+// Prefix all blob keys by user
+function userPrefix(id: string) {
+  return `${id}/time-reg.json`;
 }
 
+// GET /api/time-reg
 export async function GET() {
   const anon = await getAnonId();
-  if (!anon) return NextResponse.json({ error: 'Missing anonId' }, { status: 400 });
+  if (!anon) {
+    return NextResponse.json({ error: 'Missing anonId' }, { status: 400 });
+  }
 
-  const file = userFile(anon);
-  const recs = await readEntries(file);
-  const last5 = recs
+  const prefix = userPrefix(anon);
+  // List blobs under that key (folded mode)
+  const result = await list({ prefix, mode: 'folded' });
+  const blob = result.blobs.find(b => b.pathname === prefix);
+
+  let records: RecordEntry[] = [];
+  if (blob) {
+    // Fetch the JSON directly from its public URL
+    const res = await fetch(blob.url);
+    if (res.ok) {
+      records = await res.json() as RecordEntry[];
+    }
+  }
+
+  // Sort & take last 5 by end date
+  const last5 = records
     .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime())
     .slice(0, 5)
     .map(r => {
       const start = new Date(r.start);
       const end   = new Date(r.end);
-      return { date: start.toLocaleDateString('da-DK'), hours: (end.getTime() - start.getTime()) / 3600000 };
+      return {
+        date: start.toLocaleDateString('da-DK'),
+        hours: (end.getTime() - start.getTime()) / (1000 * 3600),
+      };
     });
 
   return NextResponse.json({ entries: last5 });
 }
 
+// POST /api/time-reg
 export async function POST(request: Request) {
   const anon = await getAnonId();
-  if (!anon) return NextResponse.json({ error: 'Missing anonId' }, { status: 400 });
+  if (!anon) {
+    return NextResponse.json({ error: 'Missing anonId' }, { status: 400 });
+  }
 
   const { start, end } = await request.json();
   if (!start || !end) {
     return NextResponse.json({ error: 'start+end required' }, { status: 400 });
   }
 
-  const file = userFile(anon);
-  const recs = await readEntries(file);
-  recs.push({ start, end });
-  // Keep only the latest 5 entries by start date
-  const sorted = recs.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-  const limited = sorted.slice(-5);
-  await writeEntries(file, limited);
+  const prefix = userPrefix(anon);
+  // Read existing
+  const listRes = await list({ prefix, mode: 'folded' });
+  const blob = listRes.blobs.find(b => b.pathname === prefix);
+
+  let records: RecordEntry[] = [];
+  if (blob) {
+    const res = await fetch(blob.url);
+    if (res.ok) records = await res.json() as RecordEntry[];
+  }
+
+  // Add & trim to last 5 by start date
+  records.push({ start, end });
+  records = records
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+    .slice(-5);
+
+  // Write updated JSON back to blob (publicly accessible)
+  const jsonBlob = new Blob([JSON.stringify(records)], { type: 'application/json' });
+  await put(prefix, jsonBlob, { access: 'public', allowOverwrite: true });
 
   return NextResponse.json({ success: true }, { status: 201 });
 }

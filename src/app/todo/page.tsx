@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import styles from './page.module.css';
 
 import { IoMdAddCircleOutline } from "react-icons/io";
+import Loader from '../components/loader';
 
 interface TodoItem { id: string; text: string; disabled: boolean; }
 
@@ -24,15 +25,12 @@ export default function TodoPage() {
 
   const [items, setItems] = useState<TodoItem[]>([]);
   const [text, setText] = useState('');
-  const isLoading = useRef(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchItems = async () => {
-    if (isLoading.current) return;
-    isLoading.current = true;
-    const res = await fetch('/api/to-do');
-    const json = await res.json();
-    setItems((json.items as TodoItem[]).map(item => ({ ...item, disabled: false })) || []);
-    isLoading.current = false;
+    fetch('/api/to-do')
+      .then(res => res.json())
+      .then(data => {setItems(data.items || []); setLoading(false);});
   };
 
   useEffect(() => {
@@ -45,6 +43,7 @@ export default function TodoPage() {
       alert('Du kan kun have 10 opgaver ad gangen.');
       return;
     }
+    setLoading(true);
     await fetch('/api/to-do', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,8 +54,6 @@ export default function TodoPage() {
   };
 
   const handleDelete = async (id: string) => {
-    setItems(items => items.map(item => item.id === id ? { ...item, disabled: true } : item));
-    await new Promise(resolve => setTimeout(resolve, 2000));
     await fetch('/api/to-do', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -79,21 +76,22 @@ export default function TodoPage() {
           <IoMdAddCircleOutline size={32} />
         </button>
       </div>
-      <ul className={styles.list}>
-        {items.map((item, idx) => (
-          <li key={item.id} className={`${idx % 2 === 0 ? styles.itemEven : styles.itemOdd} ${styles.item}`}>
-            <label>
-              <input
-                type="checkbox"
-                checked={item.disabled}
-                disabled={item.disabled}
-                onChange={() => handleDelete(item.id)}
-              />
-              <span className={styles.text} style={{ color: item.disabled ? 'rgba(255, 255, 255, 0.33)' : 'inherit' }}>{item.text}</span>
-            </label>
-          </li>
-        ))}
-      </ul>
+      {loading ? <Loader mt="2rem" /> : (
+        <ul className={styles.list}>
+          {items.map((item, idx) => (
+            <li key={item.id} className={`${idx % 2 === 0 ? styles.itemEven : styles.itemOdd} ${styles.item}`}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={item.disabled}
+                  disabled={item.disabled}
+                  onChange={() => handleDelete(item.id)}
+                />
+                <span className={styles.text} style={{ color: item.disabled ? 'rgba(255, 255, 255, 0.33)' : 'inherit' }}>{item.text}</span>
+              </label>
+            </li>
+          ))}
+        </ul>)}
     </main>
   );
 };

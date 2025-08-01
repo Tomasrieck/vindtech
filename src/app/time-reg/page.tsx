@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import styles from './page.module.css';
+import Loader from '../components/loader';
 
 interface Entry { date: string; hours: number; }
 
@@ -20,6 +21,7 @@ export default function TimeRegPage() {
     }
   }, []);
 
+  const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsed, setElapsed] = useState<number>(0);
@@ -41,7 +43,7 @@ export default function TimeRegPage() {
   useEffect(() => {
     fetch('/api/time-reg')
       .then(res => res.json())
-      .then(data => setEntries(data.entries || []));
+      .then(data => {setEntries(data.entries || []); setLoading(false);});
   }, []);
 
   // Update elapsed timer every second when running
@@ -66,6 +68,7 @@ export default function TimeRegPage() {
 
   const handleStop = async () => {
     if (!startTime) return;
+    setLoading(true);
     setRunning(false);
     localStorage.removeItem('timerStart');
     const endTime = new Date();
@@ -81,6 +84,7 @@ export default function TimeRegPage() {
     const res = await fetch('/api/time-reg');
     const json = await res.json();
     setEntries(json.entries || []);
+    setLoading(false);
   };
 
   const formatTime = (sec: number) => new Date(sec * 1000).toISOString().substr(11, 8);
@@ -94,13 +98,14 @@ export default function TimeRegPage() {
         }
         <span className={styles.elapsed}>{formatTime(elapsed)}</span>
       </div>
+      {loading ? <Loader mt="4rem" /> : (
       <ul className={styles.entries}>
         {entries.map((e, i) => (
           <li key={i} className={i % 2 === 0 ? styles.entryEven : styles.entryOdd}>
             <strong>{e.date}:</strong> {Math.floor(e.hours)} timer {Math.round((e.hours % 1) * 60)} minutter
           </li>
         ))}
-      </ul>
+      </ul>)}
     </main>
   );
 }

@@ -1,76 +1,92 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { cookies } from 'next/headers';
+import { list, put } from '@vercel/blob';
 
 type RecordEntry = { id: string; text: string };
-const DATA_DIR = path.join(process.cwd(), 'data/to-do');
 
-async function ensureFile(file: string) {
-  try { await fs.access(file); }
-  catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(file, '[]');
-  }
-}
-
-async function readEntries(file: string): Promise<RecordEntry[]> {
-  await ensureFile(file);
-  const content = await fs.readFile(file, 'utf8');
-  return JSON.parse(content) as RecordEntry[];
-}
-
-async function writeEntries(file: string, records: RecordEntry[]) {
-  await fs.writeFile(file, JSON.stringify(records, null, 2));
-}
-
+// read anonId…
 async function getAnonId(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get('anonId')?.value || null;
+  const store = await cookies();
+  return store.get('anonId')?.value || null;
 }
 
-function userFile(userId: string) {
-  return path.join(DATA_DIR, `${userId}.json`);
+// where we store the JSON
+function userKey(id: string) {
+  return `${id}/todo.json`;
 }
 
-// GET /api/to-do
+// GET
 export async function GET() {
   const anon = await getAnonId();
   if (!anon) return NextResponse.json({ error: 'Missing anonId' }, { status: 400 });
 
-  const file = userFile(anon);
-  const recs = await readEntries(file);
-  return NextResponse.json({ items: recs });
+  const key = userKey(anon);
+  const res = await list({ prefix: key, mode: 'folded' });
+  // <— use b.key, not b.pathname
+  const blob = res.blobs.find(b => b.pathname === key);
+
+  let items: RecordEntry[] = [];
+  if (blob) {
+    const r = await fetch(blob.url);
+    if (r.ok) items = await r.json();
+  }
+
+  return NextResponse.json({ items });
 }
 
-// POST /api/to-do
+// POST
 export async function POST(request: Request) {
   const anon = await getAnonId();
   if (!anon) return NextResponse.json({ error: 'Missing anonId' }, { status: 400 });
+
   const { text } = await request.json();
   if (!text) return NextResponse.json({ error: 'Text required' }, { status: 400 });
 
-  const file = userFile(anon);
-  const recs = await readEntries(file);
-  if (recs.length >= 10) {
+  const key = userKey(anon);
+  const listRes = await list({ prefix: key, mode: 'folded' });
+  // <— use b.key here too
+  const blob = listRes.blobs.find(b => b.pathname === key);
+
+  let items: RecordEntry[] = [];
+  if (blob) {
+    const r = await fetch(blob.url);
+    if (r.ok) items = await r.json();
+  }
+
+  if (items.length >= 10) {
     return NextResponse.json({ error: 'Max 10 items' }, { status: 400 });
   }
-  const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
-  recs.push({ id, text });
-  await writeEntries(file, recs);
+  const id = crypto.randomUUID?.() ?? Date.now().toString();
+  items.push({ id, text });
+
+  const jsonBlob = new Blob([JSON.stringify(items)], { type: 'application/json' });
+  await put(key, jsonBlob, { access: 'public', allowOverwrite: true });
+
   return NextResponse.json({ success: true }, { status: 201 });
 }
 
-// DELETE /api/to-do
+// DELETE
 export async function DELETE(request: Request) {
   const anon = await getAnonId();
   if (!anon) return NextResponse.json({ error: 'Missing anonId' }, { status: 400 });
+
   const { id } = await request.json();
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-  const file = userFile(anon);
-  const recs = await readEntries(file);
-  const filtered = recs.filter(r => r.id !== id);
-  await writeEntries(file, filtered);
+  const key = userKey(anon);
+  const listRes = await list({ prefix: key, mode: 'folded' });
+  // <— and here
+  const blob = listRes.blobs.find(b => b.pathname === key);
+
+  let items: RecordEntry[] = [];
+  if (blob) {
+    const r = await fetch(blob.url);
+    if (r.ok) items = await r.json();
+  }
+
+  const filtered = items.filter(item => item.id !== id);
+  const jsonBlob = new Blob([JSON.stringify(filtered)], { type: 'application/json' });
+  await put(key, jsonBlob, { access: 'public', allowOverwrite: true });
+
   return NextResponse.json({ success: true });
 }

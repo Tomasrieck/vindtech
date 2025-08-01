@@ -1,58 +1,70 @@
-// app/api/images/route.ts
 import { NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { cookies } from 'next/headers'
+import { list, put, del } from '@vercel/blob'
 
-const DATA_DIR = path.join(process.cwd(), 'data/images')
-
+// Base directory for Vercel Blob is configured via your ENV / project settings
 async function getAnonId() {
   const store = await cookies()
   return store.get('anonId')?.value || null
 }
 
-function userDir(id: string) {
-  return path.join(DATA_DIR, id)
+function userPrefix(id: string) {
+  return `${id}/`
 }
 
-async function ensureDir(dir: string) {
-  try { await fs.access(dir) }
-  catch { await fs.mkdir(dir, { recursive: true }) }
-}
-
-// respond with both filename + data-URI
+// GET /api/images
 export async function GET() {
   const anon = await getAnonId()
-  if (!anon) return NextResponse.json({ error: 'Missing anonId' }, { status: 400 })
+  if (!anon) {
+    return NextResponse.json({ error: 'Missing anonId' }, { status: 400 })
+  }
 
-  const dir = userDir(anon)
-  await ensureDir(dir)
-  const files = await fs.readdir(dir)
-  const images = await Promise.all(
-    files.map(async fname => {
-      const buf = await fs.readFile(path.join(dir, fname))
-      const ext = path.extname(fname).slice(1)
-      const mime = `image/${ext}`
-      return { filename: fname, src: `data:${mime};base64,${buf.toString('base64')}` }
-    })
-  )
+  // List blobs under the user's prefix
+  const result = await list({ prefix: `${userPrefix(anon)}images/` })
+  // result.blobs is the array of blob metadata
+  const images = result.blobs.map((b) => ({
+    filename: b.pathname.replace(userPrefix(anon), ''),
+    url: b.url,
+  }))
+
   return NextResponse.json({ images })
 }
 
-export async function POST(request: Request) { /*...unchanged...*/ }
+// POST /api/images
+export async function POST(request: Request) {
+  const anon = await getAnonId()
+  if (!anon) {
+    return NextResponse.json({ error: 'Missing anonId' }, { status: 400 })
+  }
 
+  const form = await request.formData()
+  const file = form.get('image') as Blob
+  if (!file) {
+    return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
+  }
+
+  const prefix = userPrefix(anon)
+  const key = `${prefix}images/${(file as any).name}`
+  await put(key, file as any, { access: 'public' })
+
+  return NextResponse.json({ success: true }, { status: 201 })
+}
+
+// DELETE /api/images
 export async function DELETE(request: Request) {
   const anon = await getAnonId()
-  if (!anon) return NextResponse.json({ error: 'Missing anonId' }, { status: 400 })
+  if (!anon) {
+    return NextResponse.json({ error: 'Missing anonId' }, { status: 400 })
+  }
 
   const { filename } = await request.json()
-  if (!filename) return NextResponse.json({ error: 'Filename required' }, { status: 400 })
-
-  const full = path.join(userDir(anon), filename)
-  try {
-    await fs.unlink(full)
-  } catch (e) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!filename) {
+    return NextResponse.json({ error: 'Filename required' }, { status: 400 })
   }
+
+  const key = `${userPrefix(anon)}${filename}`
+  await del(key)
   return NextResponse.json({ success: true })
 }

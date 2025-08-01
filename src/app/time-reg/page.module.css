@@ -1,11 +1,5 @@
-/* page.module.css */
-
 .container {
-  max-width: 600px;
   padding: 1rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .timer {
@@ -22,6 +16,7 @@
   height: 10rem;
   width: 10rem;
   background-color: var(--primary-background);
+  color: var(--foreground);
   font-size: 2rem;
   font-weight: 600;
   border: 9px solid var(--primary-foreground);
