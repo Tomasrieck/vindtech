@@ -8,7 +8,6 @@ const urlsToCache = [
   "/daw",
   "/todo",
   "/images",
-  "/data",
   "/manifest.json",
   "/icons/logo-192.png",
   "/icons/logo-256.png",

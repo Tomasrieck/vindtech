@@ -22,7 +22,10 @@
   overflow: hidden;
   margin-bottom: 1rem;
   position: relative;
-  transition: border-color 0.2s;
+  transition: border 0.2s;
+}
+.uploadBox:hover {
+  border: 2px solid #666;
 }
 
 .uploadBox img {
@@ -30,9 +33,7 @@
   height: auto;
   object-fit: cover;
 }
-.uploadBox:hover {
-  border: 2px solid #666;
-}
+
 .placeholder {
   display: flex;
   flex-direction: column;
