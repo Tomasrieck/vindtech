@@ -3,7 +3,6 @@
   justify-content: flex-start;
   flex-direction: column;
   padding: 1rem;
-  color: -apple-system-gray;
 }
 
 .discover {
@@ -14,7 +13,11 @@
 }
 
 .headline {
+  color: #bbb;
   margin-bottom: 1rem;
+}
+.headline strong {
+  color: var(--foreground)
 }
 
 .description {

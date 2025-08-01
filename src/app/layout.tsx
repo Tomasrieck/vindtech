@@ -21,6 +21,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
+
+        {/* Tell iOS this is a standalone web app */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        {/* Icon for “Add to Home Screen” on iOS */}
+        <link
+          rel="apple-touch-icon"
+          href="/icons/logo-180.png"
+          sizes="180x180"
+        />
+
+        {/* Theme color for the status bar (used on Android too) */}
+        <meta name="theme-color" content="#000000" />
       </head>
       <body>
         <RegisterSW />
