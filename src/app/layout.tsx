@@ -32,9 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="/icons/logo-180.png"
           sizes="180x180"
         />
-
-        {/* Theme color for the status bar (used on Android too) */}
-        <meta name="theme-color" content="#000000" />
       </head>
       <body>
         <RegisterSW />
